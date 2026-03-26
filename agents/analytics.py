@@ -68,7 +68,9 @@ Retrieved Context:
         HumanMessage(content=user_content)
     ]
 
-    response = llm.invoke(messages)
+    from core.observability import get_callbacks
+    callbacks = get_callbacks()
+    response = llm.invoke(messages, config={"callbacks": callbacks})
 
     return {
         "analytics_result": response.content.strip(),
