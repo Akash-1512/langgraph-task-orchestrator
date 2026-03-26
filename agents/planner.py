@@ -51,8 +51,10 @@ def planner_node(state: AgentState) -> dict:
         HumanMessage(content=f"Business query: {state['query']}")
     ]
 
-    response = llm.invoke(messages)
-
+    from core.observability import get_callbacks
+    callbacks = get_callbacks()
+    response = llm.invoke(messages, config={"callbacks": callbacks})
+    
     # Parse the numbered list response into a clean Python list
     plan_text = response.content.strip()
     plan_lines = [
