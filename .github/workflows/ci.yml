@@ -1,0 +1,90 @@
+# .github/workflows/ci.yml
+# Runs on every push and PR — unit tests + integration tests
+# Free for public repositories on GitHub Actions
+
+name: CI — Test Suite
+
+on:
+  push:
+    branches: [ develop, main, "feature/**", "fix/**" ]
+  pull_request:
+    branches: [ develop, main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install langchain-chroma fastembed
+
+      - name: Run state structure tests
+        run: python -m tests.test_state
+
+      - name: Run LLM client tests
+        run: python -m tests.test_llm_client
+        env:
+          LLM_PROVIDER: groq
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: llama-3.3-70b-versatile
+          VECTOR_STORE: chroma
+
+      - name: Run planner agent tests
+        run: python -m tests.test_planner
+        env:
+          LLM_PROVIDER: groq
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: llama-3.3-70b-versatile
+          VECTOR_STORE: chroma
+
+      - name: Run research agent tests
+        run: python -m tests.test_research
+        env:
+          LLM_PROVIDER: groq
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: llama-3.3-70b-versatile
+          VECTOR_STORE: chroma
+
+      - name: Run analytics agent tests
+        run: python -m tests.test_analytics
+        env:
+          LLM_PROVIDER: groq
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: llama-3.3-70b-versatile
+          VECTOR_STORE: chroma
+
+      - name: Run critique agent tests
+        run: python -m tests.test_critique
+        env:
+          LLM_PROVIDER: groq
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: llama-3.3-70b-versatile
+          VECTOR_STORE: chroma
+
+      - name: Run full graph integration test
+        run: python -m tests.test_graph
+        env:
+          LLM_PROVIDER: groq
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: llama-3.3-70b-versatile
+          VECTOR_STORE: chroma
