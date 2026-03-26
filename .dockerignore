@@ -1,0 +1,23 @@
+# .dockerignore
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.env
+.env.local
+chroma_db/
+mlruns/
+mlartifacts/
+.git/
+.github/
+*.log
+.DS_Store
+Thumbs.db
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+docs/
+*.md
