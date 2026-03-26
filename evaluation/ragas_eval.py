@@ -71,8 +71,6 @@ def run_ragas_evaluation() -> dict:
 
     # Wrap the LangChain LLM for RAGAS
     llm = get_llm()
-    from ragas.llms import llm_factory
-    from langchain_groq import ChatGroq
     evaluator_llm = LangchainLLMWrapper(llm)
 
     # Build evaluation dataset
@@ -103,4 +101,8 @@ def run_ragas_evaluation() -> dict:
 
 
 if __name__ == "__main__":
-    run_ragas_evaluation()
+    result = run_ragas_evaluation()
+    if not result["passed"]:
+        print("❌ Quality gate failed — exiting with code 1")
+        import sys
+        sys.exit(1)
