@@ -1,0 +1,118 @@
+"""
+api/main.py
+
+FastAPI backend for the langgraph-task-orchestrator.
+Exposes endpoints to run the agent graph and handle HITL approval.
+
+Endpoints:
+    POST /run     — Start a new graph run
+    POST /approve — Approve or revise HITL checkpoint
+    GET  /state   — Get current graph state
+    GET  /ping    — Keep-alive for Render free tier
+"""
+
+import uuid
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from langgraph.types import Command
+
+from graph.agent_graph import graph
+
+app = FastAPI(
+    title="langgraph-task-orchestrator",
+    description="Multi-agent OKR analytics system with HITL",
+    version="1.0.0"
+)
+
+
+class RunRequest(BaseModel):
+    query: str
+    thread_id: str = None
+
+
+class HITLRequest(BaseModel):
+    thread_id: str
+    action: str  # "approve" or revision feedback text
+
+
+@app.get("/ping")
+def ping():
+    """Keep-alive endpoint for Render free tier."""
+    return {"status": "alive"}
+
+
+@app.post("/run")
+def run_graph(request: RunRequest):
+    """Start a new agent graph run. Returns when HITL interrupt is hit."""
+    thread_id = request.thread_id or str(uuid.uuid4())
+    config = {"configurable": {"thread_id": thread_id}}
+
+    initial_input = {
+        "query": request.query,
+        "messages": [],
+        "plan": None,
+        "research_context": None,
+        "retrieved_sources": None,
+        "analytics_result": None,
+        "critique": None,
+        "hitl_status": "pending",
+        "hitl_feedback": None,
+        "final_output": None,
+        "run_metadata": None,
+        "error": None,
+    }
+
+    events = []
+    interrupt_data = None
+
+    for event in graph.stream(initial_input, config=config):
+        node_name = list(event.keys())[0]
+        if node_name == "__interrupt__":
+            interrupt_data = event["__interrupt__"][0].value
+        else:
+            events.append(node_name)
+
+    return {
+        "thread_id": thread_id,
+        "nodes_completed": events,
+        "hitl_interrupt": interrupt_data,
+        "status": "awaiting_hitl" if interrupt_data else "completed"
+    }
+
+
+@app.post("/approve")
+def handle_hitl(request: HITLRequest):
+    """Resume graph after HITL checkpoint with approve or revision."""
+    config = {"configurable": {"thread_id": request.thread_id}}
+
+    try:
+        events = []
+        for event in graph.stream(Command(resume=request.action), config=config):
+            node_name = list(event.keys())[0]
+            events.append(node_name)
+
+        final_state = graph.get_state(config)
+        return {
+            "thread_id": request.thread_id,
+            "hitl_status": final_state.values.get("hitl_status"),
+            "final_output": final_state.values.get("final_output"),
+            "nodes_completed": events,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/state/{thread_id}")
+def get_state(thread_id: str):
+    """Get current graph state for a thread."""
+    config = {"configurable": {"thread_id": thread_id}}
+    state = graph.get_state(config)
+    if not state.values:
+        raise HTTPException(status_code=404, detail="Thread not found")
+    return {
+        "thread_id": thread_id,
+        "hitl_status": state.values.get("hitl_status"),
+        "analytics_result": state.values.get("analytics_result"),
+        "critique": state.values.get("critique"),
+        "final_output": state.values.get("final_output"),
+    }
