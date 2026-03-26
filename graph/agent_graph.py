@@ -100,5 +100,19 @@ def build_graph() -> StateGraph:
     return builder.compile(checkpointer=checkpointer)
 
 
+def get_traced_graph():
+    """
+    Returns the compiled graph with Langfuse callbacks pre-attached.
+    Use this for production — traces every node automatically.
+    
+    Usage:
+        from graph.agent_graph import get_traced_graph
+        from core.observability import get_callbacks
+        traced = get_traced_graph()
+        traced.stream(input, config={"callbacks": get_callbacks(), "configurable": {"thread_id": "..."}})
+    """
+    return graph
+
+
 # Singleton graph instance — import this in api/ and ui/
 graph = build_graph()
