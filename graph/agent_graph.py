@@ -18,8 +18,8 @@ Graph flow:
 """
 
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.memory import MemorySaver
-
+from langgraph.checkpoint.sqlite import SqliteSaver
+import os
 from agents.state import AgentState
 from agents.planner import planner_node
 from agents.research import research_node
@@ -96,9 +96,17 @@ def build_graph() -> StateGraph:
     )
 
     # ── Compile with checkpointer (required for interrupt) ────────────────
-    checkpointer = MemorySaver()
-    return builder.compile(checkpointer=checkpointer)
+    # checkpointer = MemorySaver()
+    # return builder.compile(checkpointer=checkpointer)
 
+    # SqliteSaver persists state to disk — survives server restarts.
+    # MemorySaver is lost on restart — only suitable for testing.
+    # DB_PATH can be overridden via env variable for Docker/cloud deployments.
+    import sqlite3
+    db_path = os.getenv("CHECKPOINT_DB_PATH", "checkpoints.sqlite")
+    conn = sqlite3.connect(db_path, check_same_thread=False)
+    checkpointer = SqliteSaver(conn)
+    return builder.compile(checkpointer=checkpointer)
 
 def get_traced_graph():
     """
