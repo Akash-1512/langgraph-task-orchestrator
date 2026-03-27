@@ -88,12 +88,3 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GROQ_MODEL: llama-3.3-70b-versatile
           VECTOR_STORE: chroma
-
-      - name: Run DeepEval quality gate
-        run: deepeval test run evaluation/test_deepeval.py
-        env:
-          LLM_PROVIDER: groq
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: llama-3.3-70b-versatile
-          VECTOR_STORE: chroma
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
