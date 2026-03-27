@@ -36,7 +36,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install langchain-chroma fastembed
+          pip install langchain-chroma fastembed langgraph-checkpoint-sqlite
 
       - name: Run state structure tests
         run: python -m tests.test_state
