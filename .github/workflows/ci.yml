@@ -46,7 +46,7 @@ jobs:
         env:
           LLM_PROVIDER: groq
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: llama-3.3-70b-versatile
+          GROQ_MODEL: llama-3.1-8b-instant
           VECTOR_STORE: chroma
 
       - name: Run planner agent tests
@@ -54,7 +54,7 @@ jobs:
         env:
           LLM_PROVIDER: groq
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: llama-3.3-70b-versatile
+          GROQ_MODEL: llama-3.1-8b-instant
           VECTOR_STORE: chroma
 
       - name: Run research agent tests
@@ -62,7 +62,7 @@ jobs:
         env:
           LLM_PROVIDER: groq
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: llama-3.3-70b-versatile
+          GROQ_MODEL: llama-3.1-8b-instant
           VECTOR_STORE: chroma
 
       - name: Run analytics agent tests
@@ -70,7 +70,7 @@ jobs:
         env:
           LLM_PROVIDER: groq
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: llama-3.3-70b-versatile
+          GROQ_MODEL: llama-3.1-8b-instant
           VECTOR_STORE: chroma
 
       - name: Run critique agent tests
@@ -78,13 +78,13 @@ jobs:
         env:
           LLM_PROVIDER: groq
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: llama-3.3-70b-versatile
+          GROQ_MODEL: llama-3.1-8b-instant
           VECTOR_STORE: chroma
-
-      - name: Run full graph integration test
-        run: python -m tests.test_graph
+      
+      - name: Run DeepEval quality gate
+        run: deepeval test run evaluation/test_deepeval.py
         env:
           LLM_PROVIDER: groq
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: llama-3.3-70b-versatile
+          GROQ_MODEL: llama-3.1-8b-instant
           VECTOR_STORE: chroma
