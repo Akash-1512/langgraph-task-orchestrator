@@ -106,6 +106,10 @@ langgraph-task-orchestrator/
 
 ---
 
+## 🎬 Demo Video
+
+> 📹 **[Watch 3-minute Loom demo](https://loom.com/share/placeholder)** — Full agent pipeline walkthrough with HITL approval
+
 ## ⚠️ Demo Notes
 
 - First request to the hosted API may take ~30s (Render free tier cold start)
