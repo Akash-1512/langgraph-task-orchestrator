@@ -15,7 +15,9 @@ import uuid
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from langgraph.types import Command
-
+from fastapi import WebSocket, WebSocketDisconnect
+import asyncio
+import json
 from graph.agent_graph import graph
 
 app = FastAPI(
@@ -116,3 +118,66 @@ def get_state(thread_id: str):
         "critique": state.values.get("critique"),
         "final_output": state.values.get("final_output"),
     }
+
+@app.websocket("/ws/run")
+async def websocket_run(websocket: WebSocket):
+    """
+    WebSocket endpoint for real-time graph state streaming.
+    Streams each node completion event as it happens.
+
+    Usage (JavaScript):
+        const ws = new WebSocket('ws://localhost:8000/ws/run');
+        ws.send(JSON.stringify({query: "Analyze Apple Q1 performance"}));
+        ws.onmessage = (e) => console.log(JSON.parse(e.data));
+    """
+    await websocket.accept()
+    try:
+        data = await websocket.receive_text()
+        request = json.loads(data)
+        query = request.get("query", "")
+        thread_id = request.get("thread_id", str(uuid.uuid4()))
+        config = {"configurable": {"thread_id": thread_id}}
+
+        initial_input = {
+            "query": query,
+            "messages": [],
+            "plan": None,
+            "research_context": None,
+            "retrieved_sources": None,
+            "analytics_result": None,
+            "critique": None,
+            "hitl_status": "pending",
+            "hitl_feedback": None,
+            "final_output": None,
+            "run_metadata": None,
+            "error": None,
+        }
+
+        await websocket.send_text(json.dumps({
+            "type": "start",
+            "thread_id": thread_id
+        }))
+
+        for event in graph.stream(initial_input, config=config):
+            node_name = list(event.keys())[0]
+            if node_name == "__interrupt__":
+                interrupt_data = event["__interrupt__"][0].value
+                await websocket.send_text(json.dumps({
+                    "type": "interrupt",
+                    "node": "hitl",
+                    "data": interrupt_data
+                }))
+            else:
+                await websocket.send_text(json.dumps({
+                    "type": "node_complete",
+                    "node": node_name,
+                }))
+            await asyncio.sleep(0)
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        await websocket.send_text(json.dumps({
+            "type": "error",
+            "message": str(e)
+        }))
