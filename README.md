@@ -93,19 +93,6 @@ langgraph-task-orchestrator/
 
 ---
 
-## 🎯 Key Interview Talking Points
-
-**HITL Pattern:**
-> "I implemented a HITL interrupt pattern in LangGraph where the graph state is persisted to a checkpointer before pausing — the agent resumes from exactly where it stopped after human review, with zero state loss."
-
-**Quality Gate:**
-> "Every release is gated by LLM-as-Judge scores — faithfulness, coherence, and task completion. If the overall score drops below 0.75, the graph routes back to the analytics agent automatically."
-
-**Provider Abstraction:**
-> "The demo runs on Groq for cost efficiency, but the same code deploys to Azure OpenAI by changing one environment variable. Vendor lock-in is a real enterprise risk — this architecture avoids it intentionally."
-
----
-
 ## 🎬 Demo Video
 
 > 📹 **[Watch 3-minute Loom demo](https://loom.com/share/placeholder)** — Full agent pipeline walkthrough with HITL approval
