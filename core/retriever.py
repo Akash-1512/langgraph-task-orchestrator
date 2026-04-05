@@ -67,7 +67,7 @@ def get_vector_store():
         )
 
 
-def get_retriever(k: int = 4):
+def get_retriever(k: int = 4, score_threshold: float = 0.3):
     """
     Returns a retriever that fetches top-k relevant chunks.
 
@@ -77,12 +77,15 @@ def get_retriever(k: int = 4):
     Returns:
         LangChain retriever instance
     """
-    vector_store = get_vector_store()
-    return vector_store.as_retriever(
-        search_type="similarity",
-        search_kwargs={"k": k}
+    vs = get_vector_store()
+    # Use similarity_score_threshold instead of plain similarity search
+    return vs.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={
+            "k": k,
+            "score_threshold": score_threshold,
+        }
     )
-
 
 def ingest_documents(documents: list[Document]) -> None:
     """

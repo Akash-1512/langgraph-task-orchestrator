@@ -5,7 +5,7 @@ Analytics Agent — third node in the LangGraph StateGraph.
 Produces a structured analytical response grounded in retrieved OKR context.
 
 Input state fields read:  query, plan, research_context, retrieved_sources, hitl_feedback
-Output state fields written: analytics_result, messages
+Output state fields written: analytics_result, messages, retry_count
 """
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -13,7 +13,7 @@ from agents.state import AgentState
 from core.llm_client import get_llm
 
 
-ANALYTICS_SYSTEM_PROMPT = """You are a senior OKR analytics agent. Your job is to analyze 
+ANALYTICS_SYSTEM_PROMPT = """You are a senior OKR analytics agent. Your job is to analyze
 business performance data and produce a structured, actionable report.
 
 Rules:
@@ -32,24 +32,26 @@ def analytics_node(state: AgentState) -> dict:
 
     Args:
         state: Current AgentState — reads query, plan, research_context,
-               retrieved_sources, and hitl_feedback fields
+               retrieved_sources, hitl_feedback, and retry_count fields
 
     Returns:
-        dict with updated 'analytics_result' and 'messages' fields
+        dict with updated analytics_result, messages, and retry_count fields
     """
+    retry_count = state.get("retry_count", 0)
     llm = get_llm()
 
     plan = state.get("plan") or []
     research_context = state.get("research_context") or []
+    retrieved_sources = state.get("retrieved_sources") or []
     hitl_feedback = state.get("hitl_feedback")
 
-    # Format retrieved context for the prompt
+    # Format retrieved context with source attribution
     context_text = "\n\n".join([
-        f"[Source: {state.get('retrieved_sources', ['unknown'])[i] if state.get('retrieved_sources') else 'unknown'}]\n{chunk}"
+        f"[Source: {retrieved_sources[i] if i < len(retrieved_sources) else 'unknown'}]\n{chunk}"
         for i, chunk in enumerate(research_context)
     ])
 
-    # Build the user message — include HITL feedback if this is a revision
+    # Build user message — include HITL feedback if this is a revision
     user_content = f"""Query: {state['query']}
 
 Plan:
@@ -65,7 +67,7 @@ Retrieved Context:
 
     messages = [
         SystemMessage(content=ANALYTICS_SYSTEM_PROMPT),
-        HumanMessage(content=user_content)
+        HumanMessage(content=user_content),
     ]
 
     from core.observability import get_callbacks
@@ -74,5 +76,6 @@ Retrieved Context:
 
     return {
         "analytics_result": response.content.strip(),
-        "messages": [response]
+        "messages": [response],
+        "retry_count": retry_count + 1,
     }
