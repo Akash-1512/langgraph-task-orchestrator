@@ -11,6 +11,7 @@ Output state fields written: critique, messages
 from langchain_core.messages import HumanMessage, SystemMessage
 from agents.state import AgentState, CritiqueResult
 from core.llm_client import get_llm
+import re
 
 
 CRITIQUE_SYSTEM_PROMPT = """You are an impartial AI judge evaluating the quality of an analytics report.
@@ -26,6 +27,17 @@ COHERENCE: <score>
 TASK_COMPLETION: <score>
 NOTES: <one sentence explanation>
 """
+
+
+def _parse_score(text: str, label: str) -> float:
+    """Case-insensitive score extraction with fallback."""
+    pattern = rf"{label}\s*[:\-]\s*([0-9]*\.?[0-9]+)"
+    match = re.search(pattern, text, re.IGNORECASE)
+    if match:
+        score = float(match.group(1))
+        return max(0.0, min(1.0, score))  # Clamp to [0.0, 1.0]
+    print(f"⚠️  Could not parse {label} score from critique output — defaulting to 0.5")
+    return 0.5  # Neutral default, not 0.0
 
 
 def _parse_critique_response(response_text: str, threshold: float = 0.75) -> CritiqueResult:

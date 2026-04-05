@@ -103,26 +103,21 @@ def run_ingestion():
     from edgar import set_identity
     set_identity("Akash Chaudhari akashchaudhariofficial44@gmail.com")
 
-    print("🚀 SEC EDGAR Real Data Ingestion Pipeline")
-    print("=" * 60)
-    print(f"Companies: {', '.join(COMPANIES.keys())}")
-    print(f"Vector store: {os.getenv('VECTOR_STORE', 'chroma')}")
-    print("=" * 60)
+    # Check if already ingested
+    vs = get_vector_store()
+    try:
+        existing = vs.get()
+        existing_sources = set(
+            m.get("source", "") for m in existing.get("metadatas", [])
+        )
+        print(f"📦 Vector store already has {len(existing_sources)} unique sources")
+    except Exception:
+        existing_sources = set()
 
-    total_chunks = 0
-    successful = 0
-
-    for ticker, company_name in COMPANIES.items():
-        chunks = ingest_company_filings(ticker, company_name)
-        total_chunks += chunks
-        if chunks > 0:
-            successful += 1
-        time.sleep(1)
-
-    print("\n" + "=" * 60)
-    print(f"✅ Done! {successful}/{len(COMPANIES)} companies, {total_chunks} chunks")
-    print("=" * 60)
-    return total_chunks
+    # Skip companies already ingested
+    def should_skip(ticker: str, filing_type: str, filing_date: str) -> bool:
+        source_key = f"{ticker}_{filing_type}_{filing_date}"
+        return source_key in existing_sources
 
 
 if __name__ == "__main__":

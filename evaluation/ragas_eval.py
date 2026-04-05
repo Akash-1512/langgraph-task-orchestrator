@@ -16,7 +16,7 @@ Run with: python -m evaluation.ragas_eval
 
 from ragas import evaluate, EvaluationDataset, SingleTurnSample
 from ragas.llms import LangchainLLMWrapper
-from ragas.metrics import context_recall, faithfulness
+from ragas.metrics.collections import context_recall, faithfulness
 from core.llm_client import get_llm
 
 
