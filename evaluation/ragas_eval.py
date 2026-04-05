@@ -15,9 +15,12 @@ Run with: python -m evaluation.ragas_eval
 """
 
 from ragas import evaluate, EvaluationDataset, SingleTurnSample
-from ragas.llms import LangchainLLMWrapper
-from ragas.metrics.collections import context_recall, faithfulness
+from ragas.llms import LangchainLLMWrapper  # TODO: migrate to llm_factory in v1.0
 from core.llm_client import get_llm
+from ragas.metrics.collections import LLMContextRecall, Faithfulness
+
+faithfulness = Faithfulness()
+context_recall = LLMContextRecall()
 
 
 # ── Sample evaluation dataset ─────────────────────────────────────────────

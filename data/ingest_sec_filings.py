@@ -37,8 +37,11 @@ TEXT_SPLITTER = RecursiveCharacterTextSplitter(
 )
 
 
-def ingest_company_filings(ticker: str, company_name: str) -> int:
+def ingest_company_filings(ticker: str, company_name: str, existing_sources: set = None) -> int:
     from edgar import Company
+    if existing_sources is None:
+        existing_sources = set()
+
     print(f"\n📥 Processing {company_name} ({ticker})...")
     total_chunks = 0
 
@@ -57,8 +60,13 @@ def ingest_company_filings(ticker: str, company_name: str) -> int:
                     filing = entity_filings[i]
                     try:
                         filing_date = str(getattr(filing, 'filing_date', 'unknown'))
-                        print(f"   📄 Processing {filing_type} ({filing_date})...")
+                        source_key = f"{ticker}_{filing_type}_{filing_date}"
 
+                        if source_key in existing_sources:
+                            print(f"   ⏭️  Skipping {source_key} — already ingested")
+                            continue
+
+                        print(f"   📄 Processing {filing_type} ({filing_date})...")
                         text = str(filing.text())[:50000]
                         if not text or len(text) < 100:
                             print(f"   ⚠️  Insufficient text, skipping")
@@ -69,7 +77,7 @@ def ingest_company_filings(ticker: str, company_name: str) -> int:
                             Document(
                                 page_content=chunk,
                                 metadata={
-                                    "source": f"{ticker}_{filing_type}_{filing_date}",
+                                    "source": source_key,
                                     "ticker": ticker,
                                     "company": company_name,
                                     "filing_type": filing_type,
@@ -98,14 +106,21 @@ def ingest_company_filings(ticker: str, company_name: str) -> int:
 
     return total_chunks
 
-
 def run_ingestion():
     from edgar import set_identity
     set_identity("Akash Chaudhari akashchaudhariofficial44@gmail.com")
 
-    # Check if already ingested
-    vs = get_vector_store()
+    from core.retriever import ingest_documents, get_vector_store
+
+    print("🚀 SEC EDGAR Real Data Ingestion Pipeline")
+    print("=" * 60)
+    print(f"Companies: {', '.join(COMPANIES.keys())}")
+    print(f"Vector store: {os.getenv('VECTOR_STORE', 'chroma')}")
+    print("=" * 60)
+
+    # Check existing sources to avoid duplicates
     try:
+        vs = get_vector_store()
         existing = vs.get()
         existing_sources = set(
             m.get("source", "") for m in existing.get("metadatas", [])
@@ -114,10 +129,20 @@ def run_ingestion():
     except Exception:
         existing_sources = set()
 
-    # Skip companies already ingested
-    def should_skip(ticker: str, filing_type: str, filing_date: str) -> bool:
-        source_key = f"{ticker}_{filing_type}_{filing_date}"
-        return source_key in existing_sources
+    total_chunks = 0
+    successful = 0
+
+    for ticker, company_name in COMPANIES.items():
+        chunks = ingest_company_filings(ticker, company_name, existing_sources)
+        total_chunks += chunks
+        if chunks > 0:
+            successful += 1
+        time.sleep(1)
+
+    print("\n" + "=" * 60)
+    print(f"✅ Done! {successful}/{len(COMPANIES)} companies, {total_chunks} chunks")
+    print("=" * 60)
+    return total_chunks
 
 
 if __name__ == "__main__":
