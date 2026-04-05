@@ -1,12 +1,13 @@
-# langgraph-task-orchestrator
-Multi-agent OKR analytics system with LangGraph, HITL, and LLM-as-Judge evaluation
-# 🤖 langgraph-task-orchestrator
+![Python](https://img.shields.io/badge/Python-3.13-blue?logo=python)
+![LangGraph](https://img.shields.io/badge/LangGraph-0.2-green)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+![CI](https://github.com/Akash-1512/langgraph-task-orchestrator/actions/workflows/ci.yml/badge.svg)
+![RAGAS](https://img.shields.io/badge/RAGAS-Faithfulness%201.0-brightgreen)
+![DeepEval](https://img.shields.io/badge/DeepEval-Pass%20100%25-brightgreen)
+
+# 🤖 Multi-Agent OKR Analytics Orchestrator
 
 > Multi-agent OKR analytics system with LangGraph, HITL, and LLM-as-Judge evaluation.
-
-[![Python](https://img.shields.io/badge/Python-3.13-blue)](https://python.org)
-[![LangGraph](https://img.shields.io/badge/LangGraph-0.2+-green)](https://langchain-ai.github.io/langgraph/)
-[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ---
 
