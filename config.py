@@ -18,36 +18,29 @@ load_dotenv()
 
 
 class Settings:
-    demo_mode: bool = os.getenv("DEMO_MODE", "true").lower() == "true"
+    def __init__(self):
+        self.demo_mode         = os.getenv("DEMO_MODE", "true").lower() == "true"
+        self.groq_api_key      = os.getenv("GROQ_API_KEY", "")
+        self.groq_model        = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+        self.azure_api_key     = os.getenv("AZURE_OPENAI_API_KEY", "")
+        self.azure_endpoint    = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+        self.azure_deployment  = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
+        self.azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
 
-    # LLM
     @property
     def llm_provider(self) -> str:
-        if self.demo_mode:
-            return "groq"
-        return os.getenv("LLM_PROVIDER", "groq").lower()
+        """FREE DEMO: groq | PRODUCTION: set LLM_PROVIDER=azure"""
+        return "groq" if self.demo_mode else os.getenv("LLM_PROVIDER", "groq").lower()
 
-    # Vector store
     @property
     def vector_store(self) -> str:
-        if self.demo_mode:
-            return "chroma"
-        return os.getenv("VECTOR_STORE", "chroma").lower()
+        """FREE DEMO: chroma | PRODUCTION: set VECTOR_STORE=qdrant"""
+        return "chroma" if self.demo_mode else os.getenv("VECTOR_STORE", "chroma").lower()
 
-    # Checkpoint
     @property
     def checkpoint_db_path(self) -> str:
+        """FREE DEMO: SQLite | PRODUCTION: set to PostgreSQL connection string"""
         return os.getenv("CHECKPOINT_DB_PATH", "./checkpoints.sqlite")
-
-    # Groq
-    groq_api_key: str = os.getenv("GROQ_API_KEY", "")
-    groq_model: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-
-    # Azure OpenAI
-    azure_api_key: str = os.getenv("AZURE_OPENAI_API_KEY", "")
-    azure_endpoint: str = os.getenv("AZURE_OPENAI_ENDPOINT", "")
-    azure_deployment: str = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
-    azure_api_version: str = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
 
 
 settings = Settings()

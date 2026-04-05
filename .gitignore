@@ -210,3 +210,9 @@ __marimo__/
 # LangGraph checkpointer
 checkpoints.sqlite
 .deepeval
+
+docs/demo_narrated.mp4
+docs/demo.mp4
+docs/demo.gif
+scripts/audio/
+scripts/screenshots/
