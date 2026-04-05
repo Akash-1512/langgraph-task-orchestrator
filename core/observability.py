@@ -1,14 +1,12 @@
 """
-core/observability.py
+core/observability.py — LLM tracing and observability.
 
-Langfuse LLM observability integration (SDK v3).
-Reads LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST from .env.
-If keys are not set, observability is silently disabled — no crashes.
+FREE DEMO:        Langfuse Cloud (free tier) — cloud.langfuse.com
+AZURE PRODUCTION: Azure Application Insights + OpenTelemetry
+                  OR Langfuse self-hosted on Azure Container Apps
 
-Usage:
-    from core.observability import get_callbacks
-    callbacks = get_callbacks()
-    llm.invoke(messages, config={"callbacks": callbacks})
+Gracefully degrades — if keys not set, tracing is disabled.
+System continues to work normally without observability.
 """
 
 import os
@@ -19,24 +17,41 @@ load_dotenv()
 
 def get_callbacks() -> list:
     """
-    Returns a list of active Langfuse callbacks for LangChain invocations.
-    Empty list if Langfuse keys are not configured — safe for any invoke call.
+    Returns LangChain callback handlers for the configured observability stack.
 
-    Usage:
-        callbacks = get_callbacks()
-        llm.invoke(messages, config={"callbacks": callbacks})
-        graph.stream(input, config={"callbacks": callbacks})
+    FREE DEMO: Langfuse Cloud — traces every LLM call with latency, tokens, cost
+    Sign up free at: https://cloud.langfuse.com
+
+    AZURE PRODUCTION: Azure Application Insights:
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    from azure.monitor.opentelemetry.exporter import AzureMonitorTraceExporter
+    exporter = AzureMonitorTraceExporter(
+        connection_string=os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+    )
+    # Wire into LangChain via OpenTelemetry callback handler
+    # See: https://python.langchain.com/docs/integrations/callbacks/
+
+    Returns:
+        List of callback handlers (empty list if observability not configured)
     """
-    public_key = os.getenv("LANGFUSE_PUBLIC_KEY")
-    secret_key = os.getenv("LANGFUSE_SECRET_KEY")
+    callbacks = []
 
-    if not public_key or not secret_key:
-        return []
+    langfuse_key = os.getenv("LANGFUSE_PUBLIC_KEY")
+    langfuse_secret = os.getenv("LANGFUSE_SECRET_KEY")
 
-    try:
-        from langfuse.langchain import CallbackHandler
-        handler = CallbackHandler()
-        return [handler]
-    except Exception as e:
-        print(f"⚠️  Langfuse init failed: {e} — observability disabled.")
-        return []
+    if langfuse_key and langfuse_secret:
+        try:
+            from langfuse.langchain import CallbackHandler
+            handler = CallbackHandler(
+                public_key=langfuse_key,
+                secret_key=langfuse_secret,
+                host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+            )
+            callbacks.append(handler)
+            # AZURE PRODUCTION: Add Azure App Insights handler here alongside Langfuse
+            # callbacks.append(azure_app_insights_handler)
+        except Exception as e:
+            print(f"⚠️  Langfuse init failed: {e} — tracing disabled")
+
+    return callbacks
