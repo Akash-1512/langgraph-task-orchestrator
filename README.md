@@ -109,7 +109,7 @@ langgraph-task-orchestrator/
 
 ## 🎬 Demo Video
 
-> 📹 **[Watch 3-minute Loom demo](https://loom.com/share/placeholder)** — Full agent pipeline walkthrough with HITL approval
+> 🎬 **[Watch full demo video](https://youtu.be/i4-y1cYw99I)** — Architecture walkthrough + live HITL approval
 
 ## ⚠️ Demo Notes
 
