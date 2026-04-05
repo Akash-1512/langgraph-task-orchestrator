@@ -27,6 +27,7 @@ from agents.analytics import analytics_node
 from agents.critique import critique_node
 from agents.hitl import hitl_node
 
+MAX_RETRIES = 3
 
 def route_after_critique(state: AgentState) -> str:
     """
@@ -38,10 +39,17 @@ def route_after_critique(state: AgentState) -> str:
         "analytics" if critique.passed_quality_gate is False
     """
     critique = state.get("critique")
+    retry_count = state.get("retry_count", 0)
+
+    if retry_count >= MAX_RETRIES:
+        # Force through to HITL even if quality gate failed
+        print(f"⚠️  Max retries ({MAX_RETRIES}) reached — routing to HITL regardless of score")
+        return "hitl"
+
     if critique and critique.get("passed_quality_gate"):
         return "hitl"
-    return "analytics"
 
+    return "analytics"
 
 def route_after_hitl(state: AgentState) -> str:
     """

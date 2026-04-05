@@ -107,3 +107,6 @@ class AgentState(TypedDict):
     error: Optional[str]
     # Error message if any node fails. Enables graceful failure handling
     # without crashing the entire graph.
+
+    retry_count: Optional[int]   # Guards against infinite quality-gate loops
+    

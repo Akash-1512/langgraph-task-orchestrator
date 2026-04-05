@@ -1,18 +1,11 @@
 """
-core/retriever.py
+core/retriever.py — Provider-agnostic vector store abstraction.
 
-Provider-agnostic vector store retriever abstraction.
-Returns a LangChain-compatible retriever based on VECTOR_STORE env variable.
+FREE DEMO:        VECTOR_STORE=chroma  → Local ChromaDB in ./chroma_db/
+AZURE PRODUCTION: VECTOR_STORE=qdrant  → Qdrant Cloud (1GB free) or
+                                         Azure AI Search with vector index
 
-Supported backends:
-    chroma  → ChromaDB (local, in-process) — default for development
-    qdrant  → Qdrant Cloud (free tier) — default for hosted demo
-
-Usage:
-    from core.retriever import get_retriever, ingest_documents
-    retriever = get_retriever()
-
-Swap backend by changing VECTOR_STORE in .env — zero code changes required.
+Embedding model: BAAI/bge-small-en-v1.5 via FastEmbed (local, no API key)
 """
 
 import os
@@ -21,33 +14,47 @@ from langchain_core.documents import Document
 
 load_dotenv()
 
-COLLECTION_NAME = "okr_knowledge_base"
-EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"  # FastEmbed model — runs fully locally
-
-
-def get_embeddings():
-    """Returns a LangChain-compatible FastEmbed embeddings instance."""
-    from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
-    return FastEmbedEmbeddings(model_name=EMBEDDING_MODEL)
+# FREE DEMO: FastEmbed runs locally — no API key, no cost
+# AZURE PRODUCTION: Replace with Azure OpenAI text-embedding-3-small:
+# from langchain_openai import AzureOpenAIEmbeddings
+# embeddings = AzureOpenAIEmbeddings(
+#     azure_deployment="text-embedding-3-small",
+#     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+#     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+# )
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
 
 
 def get_vector_store():
     """
-    Returns a LangChain-compatible vector store for the configured backend.
-    Reads VECTOR_STORE from environment. Defaults to 'chroma' if not set.
-    """
-    backend = os.getenv("VECTOR_STORE", "chroma").lower()
-    embeddings = get_embeddings()
+    Returns configured vector store.
 
-    if backend == "chroma":
+    FREE DEMO:        ChromaDB local — data persisted in ./chroma_db/
+    AZURE PRODUCTION: Qdrant Cloud (QDRANT_URL + QDRANT_API_KEY)
+                      OR Azure AI Search:
+                      from langchain_community.vectorstores import AzureSearch
+                      return AzureSearch(
+                          azure_search_endpoint=os.getenv("AZURE_SEARCH_ENDPOINT"),
+                          azure_search_key=os.getenv("AZURE_SEARCH_KEY"),
+                          index_name="sec-filings-index",
+                          embedding_function=embeddings.embed_query,
+                      )
+    """
+    store = os.getenv("VECTOR_STORE", "chroma").lower()
+
+    if store == "chroma":
+        # FREE DEMO: ChromaDB — local, persistent, zero setup
         from langchain_chroma import Chroma
         return Chroma(
-            collection_name=COLLECTION_NAME,
+            collection_name="sec_filings",
             embedding_function=embeddings,
             persist_directory="./chroma_db",
         )
 
-    elif backend == "qdrant":
+    elif store == "qdrant":
+        # PRODUCTION: Qdrant Cloud — 1GB free tier at cloud.qdrant.io
+        # AZURE PRODUCTION: Deploy Qdrant on Azure Container Apps
         from langchain_qdrant import QdrantVectorStore
         from qdrant_client import QdrantClient
         client = QdrantClient(
@@ -56,43 +63,45 @@ def get_vector_store():
         )
         return QdrantVectorStore(
             client=client,
-            collection_name=COLLECTION_NAME,
+            collection_name="sec_filings",
             embedding=embeddings,
         )
 
     else:
-        raise ValueError(
-            f"Unsupported VECTOR_STORE: '{backend}'. "
-            f"Supported values: chroma, qdrant"
-        )
+        raise ValueError(f"Unknown VECTOR_STORE: '{store}'. Valid: chroma | qdrant")
 
 
-def get_retriever(k: int = 4):
+def get_retriever(k: int = 4, score_threshold: float = 0.3):
     """
-    Returns a retriever that fetches top-k relevant chunks.
+    Returns configured retriever with similarity threshold.
 
     Args:
-        k: Number of document chunks to retrieve. Default 4.
+        k: Maximum number of chunks to retrieve
+        score_threshold: Minimum similarity score (filters irrelevant chunks)
 
-    Returns:
-        LangChain retriever instance
+    AZURE PRODUCTION: Azure AI Search supports hybrid search (vector + keyword):
+        return AzureSearch(...).as_retriever(
+            search_type="hybrid",
+            search_kwargs={"k": k}
+        )
     """
-    vector_store = get_vector_store()
-    return vector_store.as_retriever(
-        search_type="similarity",
-        search_kwargs={"k": k}
+    vs = get_vector_store()
+    return vs.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={"k": k, "score_threshold": score_threshold},
     )
 
 
 def ingest_documents(documents: list[Document]) -> None:
     """
-    Ingests a list of LangChain Document objects into the vector store.
-    Used for loading OKR knowledge base documents.
+    Ingests documents into the configured vector store.
 
-    Args:
-        documents: List of LangChain Document objects with page_content and metadata
+    FREE DEMO: ChromaDB — synchronous, local write
+    AZURE PRODUCTION: Azure AI Search — use async batch upload:
+        from azure.search.documents import SearchClient
+        client = SearchClient(endpoint=..., index_name=..., credential=...)
+        client.upload_documents(documents=batch)
     """
-    vector_store = get_vector_store()
-    vector_store.add_documents(documents)
+    vs = get_vector_store()
+    vs.add_documents(documents)
     print(f"✅ Ingested {len(documents)} documents into {os.getenv('VECTOR_STORE', 'chroma')} vector store.")
-    

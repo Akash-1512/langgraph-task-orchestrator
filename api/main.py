@@ -12,12 +12,13 @@ Endpoints:
 """
 
 import uuid
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from langgraph.types import Command
-from fastapi import WebSocket, WebSocketDisconnect
 import asyncio
 import json
+from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 from graph.agent_graph import graph
 
 app = FastAPI(
@@ -27,6 +28,38 @@ app = FastAPI(
 )
 
 
+from pydantic import BaseModel, validator
+
+class RunRequest(BaseModel):
+    query: str
+    thread_id: Optional[str] = None
+
+    @validator("query")
+    def query_must_be_valid(cls, v):
+        v = v.strip()
+        if not v:
+            raise ValueError("query cannot be empty")
+        if len(v) > 2000:
+            raise ValueError("query exceeds 2000 character limit")
+        return v
+
+
+class ApproveRequest(BaseModel):
+    thread_id: str
+    action: str  # "approve" or revision feedback
+
+    @validator("thread_id")
+    def thread_id_must_be_valid(cls, v):
+        if not v or len(v) > 100:
+            raise ValueError("invalid thread_id")
+        return v
+
+    @validator("action")
+    def action_must_be_valid(cls, v):
+        if not v or len(v) > 1000:
+            raise ValueError("action too long or empty")
+        return v
+    
 class RunRequest(BaseModel):
     query: str
     thread_id: str = None
