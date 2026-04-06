@@ -12,10 +12,11 @@ Run with SYSTEM Python (not venv):
 """
 
 import os
+import subprocess
 import sys
 import time
-import subprocess
 from pathlib import Path
+
 from PIL import Image
 
 VENV_PYTHON = str(Path(".venv/Scripts/python.exe").resolve())
@@ -37,8 +38,17 @@ def start_servers():
 
     print("🚀 Starting Streamlit server...")
     ui = subprocess.Popen(
-        [VENV_PYTHON, "-m", "streamlit", "run", "ui/app.py",
-         "--server.port", "8501", "--server.headless", "true"],
+        [
+            VENV_PYTHON,
+            "-m",
+            "streamlit",
+            "run",
+            "ui/app.py",
+            "--server.port",
+            "8501",
+            "--server.headless",
+            "true",
+        ],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
@@ -65,7 +75,9 @@ def take_screenshots(page):
     try:
         textarea = page.locator("textarea").first
         textarea.click()
-        textarea.fill("Analyze Apple's revenue performance from their latest SEC 10-K filing")
+        textarea.fill(
+            "Analyze Apple's revenue performance from their latest SEC 10-K filing"
+        )
         page.wait_for_timeout(1000)
         path = str(SCREENSHOTS_DIR / "02_query_typed.png")
         page.screenshot(path=path, full_page=False)

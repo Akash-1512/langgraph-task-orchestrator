@@ -9,6 +9,7 @@ Embedding model: BAAI/bge-small-en-v1.5 via FastEmbed (local, no API key)
 """
 
 import os
+
 from dotenv import load_dotenv
 from langchain_core.documents import Document
 
@@ -23,6 +24,7 @@ load_dotenv()
 #     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
 # )
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+
 embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
 
 
@@ -46,6 +48,7 @@ def get_vector_store():
     if store == "chroma":
         # FREE DEMO: ChromaDB — local, persistent, zero setup
         from langchain_chroma import Chroma
+
         return Chroma(
             collection_name="sec_filings",
             embedding_function=embeddings,
@@ -57,6 +60,7 @@ def get_vector_store():
         # AZURE PRODUCTION: Deploy Qdrant on Azure Container Apps
         from langchain_qdrant import QdrantVectorStore
         from qdrant_client import QdrantClient
+
         client = QdrantClient(
             url=os.getenv("QDRANT_URL"),
             api_key=os.getenv("QDRANT_API_KEY"),
@@ -104,4 +108,6 @@ def ingest_documents(documents: list[Document]) -> None:
     """
     vs = get_vector_store()
     vs.add_documents(documents)
-    print(f"✅ Ingested {len(documents)} documents into {os.getenv('VECTOR_STORE', 'chroma')} vector store.")
+    print(
+        f"✅ Ingested {len(documents)} documents into {os.getenv('VECTOR_STORE', 'chroma')} vector store."
+    )

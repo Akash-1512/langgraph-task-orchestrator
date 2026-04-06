@@ -13,6 +13,7 @@ Usage:
 """
 
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,6 +30,7 @@ def setup_mlflow():
 
     try:
         import mlflow
+
         os.environ["MLFLOW_TRACKING_USERNAME"] = dagshub_token
         os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
         mlflow.set_tracking_uri(tracking_uri)
@@ -62,25 +64,34 @@ def log_run(
 
     try:
         import mlflow
+
         with mlflow.start_run():
             mlflow.log_param("query_preview", query[:100])
             mlflow.log_param("query_length", len(query))
 
             if ragas_scores:
-                mlflow.log_metric("ragas_faithfulness",
-                                  ragas_scores.get("faithfulness", 0))
-                mlflow.log_metric("ragas_context_recall",
-                                  ragas_scores.get("context_recall", 0))
+                mlflow.log_metric(
+                    "ragas_faithfulness", ragas_scores.get("faithfulness", 0)
+                )
+                mlflow.log_metric(
+                    "ragas_context_recall", ragas_scores.get("context_recall", 0)
+                )
 
             if critique_scores:
-                mlflow.log_metric("critique_faithfulness",
-                                  critique_scores.get("faithfulness_score", 0))
-                mlflow.log_metric("critique_coherence",
-                                  critique_scores.get("coherence_score", 0))
-                mlflow.log_metric("critique_overall",
-                                  critique_scores.get("overall_score", 0))
-                mlflow.log_metric("critique_passed",
-                                  1 if critique_scores.get("passed_quality_gate") else 0)
+                mlflow.log_metric(
+                    "critique_faithfulness",
+                    critique_scores.get("faithfulness_score", 0),
+                )
+                mlflow.log_metric(
+                    "critique_coherence", critique_scores.get("coherence_score", 0)
+                )
+                mlflow.log_metric(
+                    "critique_overall", critique_scores.get("overall_score", 0)
+                )
+                mlflow.log_metric(
+                    "critique_passed",
+                    1 if critique_scores.get("passed_quality_gate") else 0,
+                )
 
             if hitl_approved is not None:
                 mlflow.log_metric("hitl_approved", 1 if hitl_approved else 0)

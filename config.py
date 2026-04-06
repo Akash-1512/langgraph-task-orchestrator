@@ -12,6 +12,7 @@ Usage:
 """
 
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,12 +20,12 @@ load_dotenv()
 
 class Settings:
     def __init__(self):
-        self.demo_mode         = os.getenv("DEMO_MODE", "true").lower() == "true"
-        self.groq_api_key      = os.getenv("GROQ_API_KEY", "")
-        self.groq_model        = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-        self.azure_api_key     = os.getenv("AZURE_OPENAI_API_KEY", "")
-        self.azure_endpoint    = os.getenv("AZURE_OPENAI_ENDPOINT", "")
-        self.azure_deployment  = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
+        self.demo_mode = os.getenv("DEMO_MODE", "true").lower() == "true"
+        self.groq_api_key = os.getenv("GROQ_API_KEY", "")
+        self.groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+        self.azure_api_key = os.getenv("AZURE_OPENAI_API_KEY", "")
+        self.azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+        self.azure_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o")
         self.azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
 
     @property
@@ -35,7 +36,9 @@ class Settings:
     @property
     def vector_store(self) -> str:
         """FREE DEMO: chroma | PRODUCTION: set VECTOR_STORE=qdrant"""
-        return "chroma" if self.demo_mode else os.getenv("VECTOR_STORE", "chroma").lower()
+        return (
+            "chroma" if self.demo_mode else os.getenv("VECTOR_STORE", "chroma").lower()
+        )
 
     @property
     def checkpoint_db_path(self) -> str:

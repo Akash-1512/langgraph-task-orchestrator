@@ -1,0 +1,32 @@
+name: Integration Tests (Real LLM)
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"  # Every Monday 2am UTC
+  workflow_dispatch:       # Manual trigger from GitHub UI
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          pip install uv
+          uv pip install -r requirements.txt --system
+
+      - name: Run integration tests (real Groq LLM)
+        run: |
+          python -m tests.integration.test_planner_integration
+          python -m tests.integration.test_analytics_integration
+          python -m tests.test_real_data
+        env:
+          LLM_PROVIDER: groq
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: llama-3.3-70b-versatile
+          VECTOR_STORE: chroma

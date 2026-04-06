@@ -3,10 +3,11 @@ ui/app.py — Streamlit frontend for langgraph-task-orchestrator
 Run with: streamlit run ui/app.py
 """
 
-import streamlit as st
-import requests
-import uuid
 import time
+import uuid
+
+import requests
+import streamlit as st
 
 API_URL = "http://localhost:8000"
 
@@ -28,6 +29,7 @@ if "final_output" not in st.session_state:
 # Agent graph visualization
 GRAPH_NODES = ["planner", "research", "analytics", "critique", "hitl"]
 
+
 def render_agent_graph(completed_nodes):
     """Render animated agent graph showing node completion status."""
     st.subheader("🔄 Agent Execution Graph")
@@ -48,6 +50,7 @@ def render_agent_graph(completed_nodes):
             else:
                 st.info(node_labels[node])
 
+
 col1, col2, col3 = st.columns([1, 1, 1])
 
 with col1:
@@ -55,7 +58,7 @@ with col1:
     query = st.text_area(
         "Business Query",
         value="Analyze Apple's revenue performance and strategic priorities from their latest SEC filings",
-        height=120
+        height=120,
     )
 
     example_queries = [
@@ -64,7 +67,9 @@ with col1:
         "Compare Salesforce and Netflix revenue growth strategies",
         "Summarize Google's AI investments and competitive positioning",
     ]
-    selected = st.selectbox("📌 Example queries:", ["Custom query above"] + example_queries)
+    selected = st.selectbox(
+        "📌 Example queries:", ["Custom query above"] + example_queries
+    )
     if selected != "Custom query above":
         query = selected
 
@@ -80,7 +85,7 @@ with col1:
                 res = requests.post(
                     f"{API_URL}/run",
                     json={"query": query, "thread_id": thread_id},
-                    timeout=120
+                    timeout=120,
                 )
                 data = res.json()
                 st.session_state.nodes_completed = data.get("nodes_completed", [])
@@ -103,7 +108,9 @@ with col2:
         m3.metric("Task", f"{scores.get('task_completion', 0):.2f}")
         m4.metric("Overall", f"{scores.get('overall', 0):.2f}")
         st.info(f"**Judge Notes:** {d.get('critique_notes', '')}")
-        st.text_area("Analytics Result", value=d.get("analytics_result", ""), height=250)
+        st.text_area(
+            "Analytics Result", value=d.get("analytics_result", ""), height=250
+        )
 
     if st.session_state.final_output:
         st.success("✅ Approved Output:")
@@ -113,15 +120,20 @@ with col3:
     st.subheader("✅ HITL Checkpoint")
     if st.session_state.hitl_data:
         st.warning("⏸️ Agent awaiting your review")
-        st.info("Review the analytics output and scores, then approve or request revision.")
+        st.info(
+            "Review the analytics output and scores, then approve or request revision."
+        )
 
         if st.button("✅ Approve & Finalize", type="primary", use_container_width=True):
             with st.spinner("Finalizing..."):
                 try:
                     res = requests.post(
                         f"{API_URL}/approve",
-                        json={"thread_id": st.session_state.thread_id, "action": "approve"},
-                        timeout=60
+                        json={
+                            "thread_id": st.session_state.thread_id,
+                            "action": "approve",
+                        },
+                        timeout=60,
                     )
                     data = res.json()
                     st.session_state.final_output = data.get("final_output")
@@ -133,15 +145,21 @@ with col3:
                     st.error(f"Error: {e}")
 
         st.divider()
-        feedback = st.text_area("✏️ Revision feedback:", height=100,
-                                placeholder="e.g. Focus more on Q2 projections and include risk factors")
+        feedback = st.text_area(
+            "✏️ Revision feedback:",
+            height=100,
+            placeholder="e.g. Focus more on Q2 projections and include risk factors",
+        )
         if st.button("🔄 Request Revision", use_container_width=True) and feedback:
             with st.spinner("Sending revision..."):
                 try:
                     requests.post(
                         f"{API_URL}/approve",
-                        json={"thread_id": st.session_state.thread_id, "action": feedback},
-                        timeout=60
+                        json={
+                            "thread_id": st.session_state.thread_id,
+                            "action": feedback,
+                        },
+                        timeout=60,
                     )
                     st.info("✅ Revision sent. Re-run query to see updated output.")
                     st.session_state.hitl_data = None
@@ -155,5 +173,9 @@ with col3:
 
 # Footer
 st.divider()
-st.caption("📚 Knowledge Base: Real SEC EDGAR 10-K/10-Q filings from AAPL, MSFT, GOOGL, CRM, NFLX, TSLA, AMZN, META")
-st.caption("🏗️ Architecture: LangGraph StateGraph · SQLite Checkpointer · RAGAS + DeepEval Quality Gates · Langfuse Observability")
+st.caption(
+    "📚 Knowledge Base: Real SEC EDGAR 10-K/10-Q filings from AAPL, MSFT, GOOGL, CRM, NFLX, TSLA, AMZN, META"
+)
+st.caption(
+    "🏗️ Architecture: LangGraph StateGraph · SQLite Checkpointer · RAGAS + DeepEval Quality Gates · Langfuse Observability"
+)

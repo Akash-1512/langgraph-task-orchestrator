@@ -10,6 +10,7 @@ System continues to work normally without observability.
 """
 
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -45,12 +46,15 @@ def get_callbacks() -> list:
             # Set env vars so Langfuse v3 SDK picks them up automatically
             os.environ["LANGFUSE_PUBLIC_KEY"] = langfuse_key
             os.environ["LANGFUSE_SECRET_KEY"] = langfuse_secret
-            os.environ["LANGFUSE_HOST"] = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+            os.environ["LANGFUSE_HOST"] = os.getenv(
+                "LANGFUSE_HOST", "https://cloud.langfuse.com"
+            )
 
             from langfuse.langchain import CallbackHandler
+
             handler = CallbackHandler()  # v3 SDK reads from env vars
             callbacks.append(handler)
         except Exception as e:
             print(f"⚠️  Langfuse init failed: {e} — tracing disabled")
-            
+
     return callbacks

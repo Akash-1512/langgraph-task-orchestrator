@@ -9,9 +9,9 @@ Output state fields written: plan, messages
 """
 
 from langchain_core.messages import HumanMessage, SystemMessage
+
 from agents.state import AgentState
 from core.llm_client import get_llm
-
 
 PLANNER_SYSTEM_PROMPT = """You are a strategic planning agent for a multi-agent OKR analytics system.
 
@@ -48,13 +48,14 @@ def planner_node(state: AgentState) -> dict:
 
     messages = [
         SystemMessage(content=PLANNER_SYSTEM_PROMPT),
-        HumanMessage(content=f"Business query: {state['query']}")
+        HumanMessage(content=f"Business query: {state['query']}"),
     ]
 
     from core.observability import get_callbacks
+
     callbacks = get_callbacks()
     response = llm.invoke(messages, config={"callbacks": callbacks})
-    
+
     # Parse the numbered list response into a clean Python list
     plan_text = response.content.strip()
     plan_lines = [
@@ -64,5 +65,5 @@ def planner_node(state: AgentState) -> dict:
     ]
     return {
         "plan": plan_lines,
-        "messages": [HumanMessage(content=state["query"]), response]
+        "messages": [HumanMessage(content=state["query"]), response],
     }

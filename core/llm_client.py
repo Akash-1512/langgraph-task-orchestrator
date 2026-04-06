@@ -10,6 +10,7 @@ Change ONE env variable to swap providers. Zero code changes.
 """
 
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -34,6 +35,7 @@ def get_llm(temperature: float = 0.1):
         # FREE DEMO: Groq API — free tier, 100K tokens/day
         # Sign up at: https://console.groq.com
         from langchain_groq import ChatGroq
+
         return ChatGroq(
             api_key=os.getenv("GROQ_API_KEY"),
             model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
@@ -56,6 +58,7 @@ def get_llm(temperature: float = 0.1):
         # Requires: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT,
         #           AZURE_OPENAI_DEPLOYMENT_NAME, AZURE_OPENAI_API_VERSION
         from langchain_openai import AzureChatOpenAI
+
         return AzureChatOpenAI(
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
@@ -72,6 +75,7 @@ def get_llm(temperature: float = 0.1):
 
     elif provider == "openai":
         from langchain_openai import ChatOpenAI
+
         return ChatOpenAI(
             api_key=os.getenv("OPENAI_API_KEY"),
             model="gpt-4o",
@@ -80,6 +84,7 @@ def get_llm(temperature: float = 0.1):
 
     elif provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
+
         return ChatAnthropic(
             api_key=os.getenv("ANTHROPIC_API_KEY"),
             model="claude-sonnet-4-20250514",

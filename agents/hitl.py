@@ -9,6 +9,7 @@ Output state fields written: hitl_status, hitl_feedback, final_output
 """
 
 from langgraph.types import interrupt
+
 from agents.state import AgentState
 
 
@@ -40,7 +41,7 @@ def hitl_node(state: AgentState) -> dict:
             "overall": critique["overall_score"] if critique else None,
         },
         "critique_notes": critique["critique_notes"] if critique else "",
-        "instructions": "Reply with 'approve' to finalize, or provide revision feedback."
+        "instructions": "Reply with 'approve' to finalize, or provide revision feedback.",
     }
 
     # Pause graph execution — waits for Command(resume=<human_input>)

@@ -9,10 +9,11 @@ NOTE: Requires chroma_db to be populated via:
 """
 
 import os
-from agents.state import AgentState
+
+from agents.analytics import analytics_node
 from agents.planner import planner_node
 from agents.research import research_node
-from agents.analytics import analytics_node
+from agents.state import AgentState
 
 REAL_QUERIES = [
     "Analyze Apple's revenue performance and key business risks from their latest annual report",
@@ -53,7 +54,7 @@ def test_research_with_real_data():
             "Retrieve Apple revenue data from SEC filings",
             "Identify key risk factors mentioned in 10-K",
             "Analyze year-over-year performance trends",
-        ]
+        ],
     )
 
     result = research_node(state)
@@ -64,11 +65,12 @@ def test_research_with_real_data():
 
     sources = result["retrieved_sources"]
     has_real_source = any(
-        any(ticker in str(source) for ticker in REAL_TICKERS)
-        for source in sources
+        any(ticker in str(source) for ticker in REAL_TICKERS) for source in sources
     )
 
-    print(f"✅ Retrieved {len(result['research_context'])} chunks from real SEC filings")
+    print(
+        f"✅ Retrieved {len(result['research_context'])} chunks from real SEC filings"
+    )
     print(f"   Sources: {sources}")
     print(f"   Contains real SEC data: {has_real_source}")
 

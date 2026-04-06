@@ -9,6 +9,7 @@ Output state fields written: research_context, retrieved_sources
 """
 
 from langchain_core.messages import SystemMessage
+
 from agents.state import AgentState
 from core.retriever import get_retriever
 
@@ -46,5 +47,5 @@ def research_node(state: AgentState) -> dict:
             SystemMessage(
                 content=f"Research Agent retrieved {len(research_context)} relevant chunks."
             )
-        ]
+        ],
     }
