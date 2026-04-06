@@ -1,73 +1,57 @@
 """
 tests/test_analytics.py
 
-Tests for the Analytics Agent node.
-Run with: python -m tests.test_analytics
+Unit test for Analytics Agent using FakeListChatModel.
+Zero real LLM calls. Zero tokens consumed.
+
+Real LLM test: tests/integration/test_analytics_integration.py
 """
 
-from langchain_core.documents import Document
-from core.retriever import ingest_documents
-from agents.state import AgentState
+from langchain_community.chat_models.fake import FakeListChatModel
+
+import agents.analytics as analytics_module
 from agents.analytics import analytics_node
-import shutil
-import os
+from agents.state import AgentState
+
+FAKE_ANALYTICS_RESPONSE = """## Summary
+Q1 OKR performance shows mixed results across all three objectives.
+MAU achieved 72% of target. ARR reached 80% of target at $1.6M.
+
+## Key Findings
+- Key Result 1.1: 7,200 MAU vs 10,000 target (72% complete)
+- Key Result 2.1: $1.6M ARR vs $2M target (80% complete)
+- Key Result 3.1: 99.7% uptime vs 99.9% target (below threshold)
+- Key Result 3.2: 3 P1 incidents vs zero target (critical miss)
+
+## Recommendations
+- Reduce MAU target to 8,500 for Q2 given current growth trajectory
+- Split enterprise deal target into monthly milestones of 15 deals
+- Allocate dedicated SRE sprint to uptime and P1 incident reduction"""
 
 
-SAMPLE_OKR_DOCUMENTS = [
-    Document(
-        page_content="""Q1 2024 OKR Performance Report.
-        Objective 1: Increase product adoption.
-        Key Result 1.1: Achieve 10,000 monthly active users — Result: 7,200 (72% complete).
-        Key Result 1.2: Reduce churn rate to below 5% — Result: 6.8% (below target).
-        Key Result 1.3: Launch 3 new features — Result: 2 launched (67% complete).""",
-        metadata={"source": "q1_okr_report.pdf", "quarter": "Q1 2024"}
-    ),
-    Document(
-        page_content="""Q1 2024 Sales OKR Performance.
-        Objective 2: Grow revenue.
-        Key Result 2.1: Achieve $2M ARR — Result: $1.6M (80% complete).
-        Key Result 2.2: Close 50 enterprise deals — Result: 38 deals (76% complete).
-        Key Result 2.3: Expand to 3 new markets — Result: 2 markets (67% complete).""",
-        metadata={"source": "q1_sales_okr.pdf", "quarter": "Q1 2024"}
-    ),
-    Document(
-        page_content="""Q1 2024 Engineering OKR Performance.
-        Objective 3: Improve platform reliability.
-        Key Result 3.1: Achieve 99.9% uptime — Result: 99.7% (below target).
-        Key Result 3.2: Reduce P1 incidents to zero — Result: 3 P1 incidents.
-        Key Result 3.3: Deploy CI/CD for all services — Result: 100% complete.""",
-        metadata={"source": "q1_engineering_okr.pdf", "quarter": "Q1 2024"}
-    ),
-    Document(
-        page_content="""OKR Best Practices for Q2 Adjustments.
-        When key results fall below 70%, consider: reducing scope, reallocating resources,
-        or splitting into smaller milestones. Underperforming objectives should be analyzed
-        for root causes: resource constraints, market changes, or execution gaps.""",
-        metadata={"source": "okr_best_practices.pdf", "quarter": "general"}
-    ),
-]
-
-
-def test_analytics_node():
-    """Verify analytics_node produces a grounded analytical response."""
-
-    # Reset and ingest sample docs
-    if os.path.exists("./chroma_db"):
-        shutil.rmtree("./chroma_db")
-    ingest_documents(SAMPLE_OKR_DOCUMENTS)
-
-    state: AgentState = {
-        "query": "Analyze Q1 OKR performance and suggest adjustments for Q2",
+def _make_state() -> AgentState:
+    return {
+        "query": "Analyze Q1 OKR performance and suggest Q2 adjustments",
         "messages": [],
         "plan": [
-            "Retrieve Q1 OKR performance data from the knowledge base",
-            "Calculate key result completion rates for each objective",
-            "Identify underperforming objectives (below 70% completion)",
-            "Analyze root causes for underperformance using retrieved context",
-            "Suggest specific, measurable OKR adjustments for Q2",
+            "Retrieve Q1 OKR performance data",
+            "Calculate key result completion rates",
+            "Identify underperforming objectives",
+            "Analyze root causes",
+            "Suggest Q2 adjustments",
         ],
-        "research_context": [doc.page_content for doc in SAMPLE_OKR_DOCUMENTS],
-        "retrieved_sources": [doc.metadata["source"] for doc in SAMPLE_OKR_DOCUMENTS],
+        "research_context": [
+            "Key Result 1.1: Achieve 10,000 MAU — Result: 7,200 (72% complete).",
+            "Key Result 2.1: Achieve $2M ARR — Result: $1.6M (80% complete).",
+            "Key Result 3.1: Achieve 99.9% uptime — Result: 99.7% (below target).",
+            "Key Result 3.2: Reduce P1 incidents to zero — Result: 3 incidents.",
+        ],
+        "retrieved_sources": [
+            "q1_okr_report.pdf",
+            "q1_sales_okr.pdf",
+            "q1_engineering_okr.pdf",
+            "okr_best_practices.pdf",
+        ],
         "analytics_result": None,
         "critique": None,
         "hitl_status": "pending",
@@ -75,20 +59,58 @@ def test_analytics_node():
         "final_output": None,
         "run_metadata": None,
         "error": None,
+        "retry_count": 0,
     }
 
-    result = analytics_node(state)
 
-    assert "analytics_result" in result
-    assert isinstance(result["analytics_result"], str)
-    assert len(result["analytics_result"]) > 100
+def test_analytics_node_unit():
+    """
+    Unit test: Analytics produces structured output from mocked LLM.
+    Verifies Summary/Key Findings/Recommendations structure.
+    Zero real LLM calls.
+    """
+    fake_llm = FakeListChatModel(responses=[FAKE_ANALYTICS_RESPONSE])
+    original_get_llm = analytics_module.get_llm
+    analytics_module.get_llm = lambda **kwargs: fake_llm
 
-    print("✅ Analytics Agent produced response:")
-    print("-" * 60)
-    print(result["analytics_result"])
-    print("-" * 60)
+    try:
+        result = analytics_node(_make_state())
+
+        assert "analytics_result" in result
+        assert len(result["analytics_result"]) > 100
+        assert "Summary" in result["analytics_result"]
+        assert "Key Findings" in result["analytics_result"]
+        assert "Recommendations" in result["analytics_result"]
+        assert result["retry_count"] == 1
+
+        print(f"✅ Analytics unit test passed")
+        print(f"   Output length: {len(result['analytics_result'])} chars")
+        print(f"   Retry count incremented to: {result['retry_count']}")
+
+    finally:
+        analytics_module.get_llm = original_get_llm
+
+
+def test_analytics_with_hitl_feedback():
+    """Unit test: Analytics incorporates HITL revision feedback."""
+    fake_llm = FakeListChatModel(responses=[FAKE_ANALYTICS_RESPONSE])
+    original_get_llm = analytics_module.get_llm
+    analytics_module.get_llm = lambda **kwargs: fake_llm
+
+    try:
+        state = _make_state()
+        state["hitl_feedback"] = "Focus more on Q2 revenue projections"
+        result = analytics_node(state)
+
+        assert "analytics_result" in result
+        print("✅ Analytics HITL feedback test passed")
+
+    finally:
+        analytics_module.get_llm = original_get_llm
 
 
 if __name__ == "__main__":
-    test_analytics_node()
-    print("\n✅ Analytics agent tests passed.")
+    print("🔍 Running Analytics unit tests (mocked LLM)...")
+    test_analytics_node_unit()
+    test_analytics_with_hitl_feedback()
+    print("\n✅ All Analytics unit tests passed — zero tokens consumed.")

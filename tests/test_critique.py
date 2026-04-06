@@ -5,9 +5,8 @@ Tests for the Critique Agent node.
 Run with: python -m tests.test_critique
 """
 
-from agents.state import AgentState
 from agents.critique import critique_node
-
+from agents.state import AgentState
 
 SAMPLE_ANALYTICS_RESULT = """
 ## Summary
@@ -63,7 +62,9 @@ def test_critique_node():
     print(f"   Coherence:       {critique['coherence_score']}")
     print(f"   Task Completion: {critique['task_completion_score']}")
     print(f"   Overall:         {critique['overall_score']}")
-    print(f"   Quality Gate:    {'✅ PASSED' if critique['passed_quality_gate'] else '❌ FAILED'}")
+    print(
+        f"   Quality Gate:    {'✅ PASSED' if critique['passed_quality_gate'] else '❌ FAILED'}"
+    )
     print(f"   Notes:           {critique['critique_notes']}")
 
 

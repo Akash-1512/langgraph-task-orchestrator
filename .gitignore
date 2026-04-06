@@ -216,3 +216,8 @@ docs/demo.mp4
 docs/demo.gif
 scripts/audio/
 scripts/screenshots/
+
+# SQLite WAL mode runtime files
+checkpoints.sqlite-shm
+checkpoints.sqlite-wal
+checkpoints.sqlite

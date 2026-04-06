@@ -10,12 +10,14 @@ and a comment explaining its contract. This makes the graph traceable,
 debuggable, and self-documenting.
 """
 
-from typing import TypedDict, Annotated, Optional
+from typing import Annotated, Optional, TypedDict
+
 from langgraph.graph.message import add_messages
 
 
 class RunMetadata(TypedDict):
     """Tracks execution metadata for observability and debugging."""
+
     run_id: str
     started_at: str
     completed_at: Optional[str]
@@ -26,12 +28,13 @@ class RunMetadata(TypedDict):
 
 class CritiqueResult(TypedDict):
     """Output from the LLM-as-Judge Critique agent."""
-    faithfulness_score: float      # 0.0 - 1.0: Is the answer grounded in retrieved context?
-    coherence_score: float         # 0.0 - 1.0: Is the answer logically consistent?
-    task_completion_score: float   # 0.0 - 1.0: Does the answer fully address the query?
-    overall_score: float           # Weighted average of above scores
-    critique_notes: str            # Natural language explanation of scores
-    passed_quality_gate: bool      # True if overall_score >= 0.75
+
+    faithfulness_score: float  # 0.0 - 1.0: Is the answer grounded in retrieved context?
+    coherence_score: float  # 0.0 - 1.0: Is the answer logically consistent?
+    task_completion_score: float  # 0.0 - 1.0: Does the answer fully address the query?
+    overall_score: float  # Weighted average of above scores
+    critique_notes: str  # Natural language explanation of scores
+    passed_quality_gate: bool  # True if overall_score >= 0.75
 
 
 class AgentState(TypedDict):
@@ -108,5 +111,4 @@ class AgentState(TypedDict):
     # Error message if any node fails. Enables graceful failure handling
     # without crashing the entire graph.
 
-    retry_count: Optional[int]   # Guards against infinite quality-gate loops
-    
+    retry_count: Optional[int]  # Guards against infinite quality-gate loops

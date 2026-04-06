@@ -14,13 +14,14 @@ Quality gate: all three metrics must score >= 0.5 to pass.
 In CI/CD, a failing test exits with code 1 — blocking the PR merge.
 """
 
-import pytest
 import os
+
+import pytest
 from deepeval import assert_test
 from deepeval.metrics import GEval
+from deepeval.models import DeepEvalBaseLLM
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 from dotenv import load_dotenv
-from deepeval.models import DeepEvalBaseLLM
 
 load_dotenv()
 
@@ -33,6 +34,7 @@ class GroqDeepEvalModel(DeepEvalBaseLLM):
 
     def load_model(self):
         from langchain_groq import ChatGroq
+
         return ChatGroq(
             model=self.model_name,
             api_key=os.getenv("GROQ_API_KEY"),
@@ -120,6 +122,7 @@ coherence_metric = GEval(
 
 
 # ── Test cases ────────────────────────────────────────────────────────────
+
 
 def test_analytics_groundedness():
     """Analytics output must be grounded in retrieved context."""

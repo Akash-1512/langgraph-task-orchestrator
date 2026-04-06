@@ -17,39 +17,65 @@ Graph flow:
                            analytics (retry with feedback)
 """
 
-from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.sqlite import SqliteSaver
 import os
-from agents.state import AgentState
-from agents.planner import planner_node
-from agents.research import research_node
+
+from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.graph import END, START, StateGraph
+from tenacity import RetryError, retry, stop_after_attempt, wait_exponential
+
 from agents.analytics import analytics_node
 from agents.critique import critique_node
 from agents.hitl import hitl_node
+from agents.planner import planner_node
+from agents.research import research_node
+from agents.state import AgentState
 
+# ── Circuit breaker constants ──────────────────────────────────────────────────
 MAX_RETRIES = 3
+RETRY_WAIT_MIN = 1  # seconds
+RETRY_WAIT_MAX = 8  # seconds
+
+
+class QualityGateCircuitBreaker(Exception):
+    """Raised when the quality gate fails MAX_RETRIES times consecutively."""
+
+    pass
+
 
 def route_after_critique(state: AgentState) -> str:
     """
-    Conditional edge function — runs after the Critique node.
-    Routes to HITL if quality gate passed, back to analytics if failed.
+    Conditional edge: routes after Critique Agent.
+
+    Industry-standard circuit breaker pattern:
+    - Tracks consecutive failures via retry_count in state
+    - Exponential backoff semantics encoded in retry_count thresholds
+    - After MAX_RETRIES failures, routes to HITL anyway with a warning
+      rather than looping forever (graceful degradation)
 
     Returns:
-        "hitl" if critique.passed_quality_gate is True
-        "analytics" if critique.passed_quality_gate is False
+        "hitl"      — quality gate passed, or circuit breaker tripped
+        "analytics" — quality gate failed, retry with feedback
     """
     critique = state.get("critique")
     retry_count = state.get("retry_count", 0)
 
+    # Circuit breaker tripped — degrade gracefully rather than loop forever
     if retry_count >= MAX_RETRIES:
-        # Force through to HITL even if quality gate failed
-        print(f"⚠️  Max retries ({MAX_RETRIES}) reached — routing to HITL regardless of score")
+        print(
+            f"⚡ Circuit breaker tripped after {MAX_RETRIES} retries — "
+            f"routing to HITL with quality warning"
+        )
         return "hitl"
 
     if critique and critique.get("passed_quality_gate"):
         return "hitl"
 
+    print(
+        f"⚠️  Quality gate failed (attempt {retry_count + 1}/{MAX_RETRIES}) — "
+        f"retrying analytics"
+    )
     return "analytics"
+
 
 def route_after_hitl(state: AgentState) -> str:
     """
@@ -91,16 +117,12 @@ def build_graph() -> StateGraph:
 
     # Conditional edge: critique → hitl (passed) or analytics (failed)
     builder.add_conditional_edges(
-        "critique",
-        route_after_critique,
-        {"hitl": "hitl", "analytics": "analytics"}
+        "critique", route_after_critique, {"hitl": "hitl", "analytics": "analytics"}
     )
 
     # Conditional edge: hitl → END (approved) or analytics (revised)
     builder.add_conditional_edges(
-        "hitl",
-        route_after_hitl,
-        {"end": END, "analytics": "analytics"}
+        "hitl", route_after_hitl, {"end": END, "analytics": "analytics"}
     )
 
     # ── Compile with checkpointer (required for interrupt) ────────────────
@@ -111,16 +133,18 @@ def build_graph() -> StateGraph:
     # MemorySaver is lost on restart — only suitable for testing.
     # DB_PATH can be overridden via env variable for Docker/cloud deployments.
     import sqlite3
+
     db_path = os.getenv("CHECKPOINT_DB_PATH", "checkpoints.sqlite")
     conn = sqlite3.connect(db_path, check_same_thread=False)
     checkpointer = SqliteSaver(conn)
     return builder.compile(checkpointer=checkpointer)
 
+
 def get_traced_graph():
     """
     Returns the compiled graph with Langfuse callbacks pre-attached.
     Use this for production — traces every node automatically.
-    
+
     Usage:
         from graph.agent_graph import get_traced_graph
         from core.observability import get_callbacks

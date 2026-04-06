@@ -9,27 +9,40 @@ Run with system Python:
 """
 
 from pathlib import Path
-from moviepy import ImageClip, concatenate_videoclips, ColorClip
-from PIL import Image, ImageDraw, ImageFont
+
 import numpy as np
+from moviepy import ColorClip, ImageClip, concatenate_videoclips
+from PIL import Image, ImageDraw, ImageFont
 
 SCREENSHOTS_DIR = Path("scripts/screenshots")
 OUTPUT_VIDEO = Path("docs/demo.mp4")
 OUTPUT_VIDEO.parent.mkdir(parents=True, exist_ok=True)
 
 FRAMES = [
-    ("01_loaded.png",      "Step 1 — UI Loaded: Multi-Agent OKR Analytics System"),
-    ("02_query_typed.png", "Step 2 — Query: Analyze Apple's SEC 10-K revenue performance"),
-    ("03_running.png",     "Step 3 — Agent Pipeline Running: Planner → Research → Analytics → Critique"),
-    ("04_hitl_ready.png",  "Step 4 — HITL Checkpoint: LLM-as-Judge scores shown (Overall 0.78)"),
-    ("05_approved.png",    "Step 5 — Approved: Final output grounded in real Apple SEC filings"),
+    ("01_loaded.png", "Step 1 — UI Loaded: Multi-Agent OKR Analytics System"),
+    (
+        "02_query_typed.png",
+        "Step 2 — Query: Analyze Apple's SEC 10-K revenue performance",
+    ),
+    (
+        "03_running.png",
+        "Step 3 — Agent Pipeline Running: Planner → Research → Analytics → Critique",
+    ),
+    (
+        "04_hitl_ready.png",
+        "Step 4 — HITL Checkpoint: LLM-as-Judge scores shown (Overall 0.78)",
+    ),
+    (
+        "05_approved.png",
+        "Step 5 — Approved: Final output grounded in real Apple SEC filings",
+    ),
 ]
 
 DURATION_PER_FRAME = 3.0  # seconds
-FADE_DURATION = 0.4       # seconds
+FADE_DURATION = 0.4  # seconds
 CAPTION_HEIGHT = 52
 FONT_SIZE = 22
-BG_COLOR = (13, 17, 23)   # GitHub dark
+BG_COLOR = (13, 17, 23)  # GitHub dark
 TEXT_COLOR = (230, 237, 243)
 
 
@@ -74,11 +87,7 @@ def create_video():
         print(f"   📸 Processing {filename}...")
         frame = add_caption(str(path), caption)
 
-        clip = (
-            ImageClip(frame)
-            .with_duration(DURATION_PER_FRAME)
-            .with_effects([])
-        )
+        clip = ImageClip(frame).with_duration(DURATION_PER_FRAME).with_effects([])
         clips.append(clip)
 
     if not clips:

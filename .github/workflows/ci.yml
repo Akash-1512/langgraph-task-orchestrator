@@ -1,14 +1,15 @@
 # .github/workflows/ci.yml
-# Runs on every push and PR — unit tests + integration tests
-# Free for public repositories on GitHub Actions
+# Runs on every push and PR
+# Unit tests use FakeListChatModel — zero tokens consumed
+# Integration tests (real LLM) run on schedule only
 
 name: CI — Test Suite
 
 on:
   push:
-    branches: [ develop, main, "feature/**", "fix/**" ]
+    branches: [develop, main, "feature/**", "fix/**"]
   pull_request:
-    branches: [ develop, main ]
+    branches: [develop, main]
 
 jobs:
   test:
@@ -38,24 +39,17 @@ jobs:
           pip install -r requirements.txt
           pip install langchain-chroma fastembed langgraph-checkpoint-sqlite
 
-      - name: Run state structure tests
-        run: python -m tests.test_state
-
-      - name: Run LLM client tests
-        run: python -m tests.test_llm_client
+      - name: Run unit tests (mocked LLM — zero tokens)
+        run: |
+          python -m tests.test_state
+          python -m tests.test_llm_client
+          python -m tests.test_planner
+          python -m tests.test_analytics
+          python -m tests.test_critique
         env:
           LLM_PROVIDER: groq
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: llama-3.1-8b-instant
           VECTOR_STORE: chroma
-
-      - name: Run planner agent tests
-        run: python -m tests.test_planner
-        env:
-          LLM_PROVIDER: groq
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: llama-3.1-8b-instant
-          VECTOR_STORE: chroma
 
       - name: Run research agent tests
         run: python -m tests.test_research
@@ -65,22 +59,9 @@ jobs:
           GROQ_MODEL: llama-3.1-8b-instant
           VECTOR_STORE: chroma
 
-      - name: Run analytics agent tests
-        run: python -m tests.test_analytics
-        env:
-          LLM_PROVIDER: groq
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: llama-3.1-8b-instant
-          VECTOR_STORE: chroma
+      # Integration tests (real LLM) run on schedule only
+      # See .github/workflows/integration-tests.yml
 
-      - name: Run critique agent tests
-        run: python -m tests.test_critique
-        env:
-          LLM_PROVIDER: groq
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GROQ_MODEL: llama-3.1-8b-instant
-          VECTOR_STORE: chroma
-      
       - name: Run DeepEval quality gate
         run: deepeval test run evaluation/test_deepeval.py
         env:

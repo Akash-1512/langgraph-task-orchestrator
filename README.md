@@ -98,14 +98,6 @@ langgraph-task-orchestrator/
 
 > 🎬 **[Watch full demo video](https://youtu.be/i4-y1cYw99I)** — Architecture walkthrough + live HITL approval
 
-## ⚠️ Demo Notes
-
-- First request to the hosted API may take ~30s (Render free tier cold start)
-- Run locally via the Quick Start above for zero latency during interviews
-- See `docs/architecture.md` for full production vs demo config comparison
-
----
-
 ## 📄 License
 
 MIT © Akash Chaudhari

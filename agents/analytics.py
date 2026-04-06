@@ -9,9 +9,9 @@ Output state fields written: analytics_result, messages, retry_count
 """
 
 from langchain_core.messages import HumanMessage, SystemMessage
+
 from agents.state import AgentState
 from core.llm_client import get_llm
-
 
 ANALYTICS_SYSTEM_PROMPT = """You are a senior OKR analytics agent. Your job is to analyze
 business performance data and produce a structured, actionable report.
@@ -46,10 +46,12 @@ def analytics_node(state: AgentState) -> dict:
     hitl_feedback = state.get("hitl_feedback")
 
     # Format retrieved context with source attribution
-    context_text = "\n\n".join([
-        f"[Source: {retrieved_sources[i] if i < len(retrieved_sources) else 'unknown'}]\n{chunk}"
-        for i, chunk in enumerate(research_context)
-    ])
+    context_text = "\n\n".join(
+        [
+            f"[Source: {retrieved_sources[i] if i < len(retrieved_sources) else 'unknown'}]\n{chunk}"
+            for i, chunk in enumerate(research_context)
+        ]
+    )
 
     # Build user message — include HITL feedback if this is a revision
     user_content = f"""Query: {state['query']}
@@ -71,6 +73,7 @@ Retrieved Context:
     ]
 
     from core.observability import get_callbacks
+
     callbacks = get_callbacks()
     response = llm.invoke(messages, config={"callbacks": callbacks})
 

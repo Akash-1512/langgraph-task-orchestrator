@@ -11,24 +11,27 @@ Endpoints:
     GET  /ping    — Keep-alive for Render free tier
 """
 
-import uuid
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
-from langgraph.types import Command
 import asyncio
 import json
+import uuid
 from typing import Optional
+
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from langgraph.types import Command
+from pydantic import BaseModel
+
 from graph.agent_graph import graph
 
 app = FastAPI(
     title="langgraph-task-orchestrator",
     description="Multi-agent OKR analytics system with HITL",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 
 from pydantic import BaseModel, validator
+
 
 class RunRequest(BaseModel):
     query: str
@@ -59,7 +62,8 @@ class ApproveRequest(BaseModel):
         if not v or len(v) > 1000:
             raise ValueError("action too long or empty")
         return v
-    
+
+
 class RunRequest(BaseModel):
     query: str
     thread_id: str = None
@@ -111,7 +115,7 @@ def run_graph(request: RunRequest):
         "thread_id": thread_id,
         "nodes_completed": events,
         "hitl_interrupt": interrupt_data,
-        "status": "awaiting_hitl" if interrupt_data else "completed"
+        "status": "awaiting_hitl" if interrupt_data else "completed",
     }
 
 
@@ -152,6 +156,7 @@ def get_state(thread_id: str):
         "final_output": state.values.get("final_output"),
     }
 
+
 @app.websocket("/ws/run")
 async def websocket_run(websocket: WebSocket):
     """
@@ -186,31 +191,29 @@ async def websocket_run(websocket: WebSocket):
             "error": None,
         }
 
-        await websocket.send_text(json.dumps({
-            "type": "start",
-            "thread_id": thread_id
-        }))
+        await websocket.send_text(json.dumps({"type": "start", "thread_id": thread_id}))
 
         for event in graph.stream(initial_input, config=config):
             node_name = list(event.keys())[0]
             if node_name == "__interrupt__":
                 interrupt_data = event["__interrupt__"][0].value
-                await websocket.send_text(json.dumps({
-                    "type": "interrupt",
-                    "node": "hitl",
-                    "data": interrupt_data
-                }))
+                await websocket.send_text(
+                    json.dumps(
+                        {"type": "interrupt", "node": "hitl", "data": interrupt_data}
+                    )
+                )
             else:
-                await websocket.send_text(json.dumps({
-                    "type": "node_complete",
-                    "node": node_name,
-                }))
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "type": "node_complete",
+                            "node": node_name,
+                        }
+                    )
+                )
             await asyncio.sleep(0)
 
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "message": str(e)
-        }))
+        await websocket.send_text(json.dumps({"type": "error", "message": str(e)}))
